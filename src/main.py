@@ -46,7 +46,7 @@ try:
                 next_time = parse_timestamp(lyrics[idx+1])
 
                 if pos >= next_time:
-                    idx =+ 1
+                    idx += 1
 
                     text = Align(
                         lyrics[idx].split("]")[1][:-1],
