@@ -38,39 +38,60 @@ def get_position():
 def cmd(command):
     return subprocess.run(command, capture_output=True, text=True)
 
-try:
-    playing_song, artist = cmd(["playerctl", "-p", selected_player, "metadata", "--format", "'{{title}} -||- {{artist}}'"]).stdout.strip().split(" -||- ")
-    response = requests.get("https://lrclib.net/api/search", params={"q": f"{playing_song} {artist}"}, headers={"User-Agent": "terminal-lyrics/0.0.1"})
-    if response.status_code == 200:
-        response.encoding = "utf-8"
-        data = response.json()
-        if len(data) == 0:
-            print("No lyrics")
-            sys.exit(1)
-        lyrics = data[0]["syncedLyrics"]
-        if lyrics == "":
-            pass
+def get_playing_song():
+    return cmd(["playerctl", "-p", selected_player, "metadata", "--format", "'{{title}} -||- {{artist}}'"]).stdout.strip().split(" -||- ")
+
+def wait_until_next_song():
+    last_song = get_playing_song()
+    while get_playing_song() == last_song:
+        last_song = get_playing_song()
+        time.sleep(1)
+
+while True:
+    try:
+        print(123)
+        playing_song, artist = get_playing_song()
+        response = requests.get("https://lrclib.net/api/search", params={"q": f"{playing_song} {artist}"}, headers={"User-Agent": "terminal-lyrics/0.0.1"})
+        if response.status_code == 200:
+            response.encoding = "utf-8"
+            data = response.json()
+            if len(data) == 0:
+                print("no lyrics :(")
+                wait_until_next_song()
+                continue
+            lyrics = data[0]["syncedLyrics"]
+            if lyrics == "":
+                pass
+            else:
+                lyrics = lyrics.split("\n")
+                idx = 0
+                last_song = get_playing_song()
+                while idx < len(lyrics)-1:
+                    pos = get_position()
+                    if get_playing_song() != last_song:
+                        print("oguqh3ewr4o9gh")
+                        break
+                    next_time = parse_timestamp(lyrics[idx+1])
+
+                    if pos >= next_time:
+                        idx += 1
+
+                        text = Align(
+                            lyrics[idx].split("]")[1][1:],
+                            vertical="middle",
+                            align="center",
+                            height=console.height
+                        )
+                        console.print(text)
+                    else:
+                        last_song = get_playing_song()
+                        time.sleep(min(0.1, next_time-pos))
         else:
-            lyrics = lyrics.split("\n")
-            idx = 0
-            while idx < len(lyrics)-1:
-                pos = get_position()
-                next_time = parse_timestamp(lyrics[idx+1])
+            print(response.status_code)
+            wait_until_next_song()
+    except requests.exceptions.RequestException as errex:
+        print("Exception request")
 
-                if pos >= next_time:
-                    idx += 1
-
-                    text = Align(
-                        lyrics[idx].split("]")[1][1:],
-                        vertical="middle",
-                        align="center",
-                        height=console.height
-                    )
-                    console.print(text)
-                else:
-                    time.sleep(min(0.5, next_time-pos))
-    else:
-        print(response.status_code)
-except requests.exceptions.RequestException as errex:
-    print("Exception request")
+    while cmd(["playerctl", "-p", selected_player, "status"]).stdout.strip() == "Stopped":
+        time.sleep(0.5)
 
