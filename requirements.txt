@@ -1,2 +1,1 @@
 rich=15.0.0
-lrclibapi=0.3.1
