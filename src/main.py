@@ -1,5 +1,6 @@
 from rich.console import Console
 from rich.align import Align
+from simple_term_menu import TerminalMenu
 import time
 import requests
 from datetime import datetime
@@ -12,6 +13,10 @@ if subprocess.run(["which", "playerctl"], capture_output=True, text=True).return
     sys.exit(1)
 
 console = Console()
+players = subprocess.run(["playerctl", "-l"], capture_output=True, text=True).stdout.strip()
+players = players.split("\n")
+selected_player = TerminalMenu(players, title="Choose your playerctl source:")
+selected_player = players[selected_player.show()]
 
 def get_time_until_next(line1, line2):
     cur_lyric_time = line1.split("]")[0].replace("[", "")
@@ -27,16 +32,20 @@ def parse_timestamp(stamp):
     return dt.minute * 60 + dt.second + dt.microsecond / 1000000
 
 def get_position():
-    result = subprocess.run(["playerctl", "-p", "spotify", "position"], capture_output=True, text=True)
+    result = cmd(["playerctl", "-p", selected_player, "position"])
     return float(result.stdout.strip())
 
+def cmd(command):
+    return subprocess.run(command, capture_output=True, text=True)
+
 try:
-    response = requests.get("https://lrclib.net/api/search", params={"q": "tetoris"}, headers={"User-Agent": "terminal-lyrics/0.0.1"})
+    playing_song, artist = cmd(["playerctl", "-p", selected_player, "metadata", "--format", "'{{title}} -||- {{artist}}'"]).stdout.strip().split(" -||- ")
+    response = requests.get("https://lrclib.net/api/search", params={"q": f"{playing_song} {artist}"}, headers={"User-Agent": "terminal-lyrics/0.0.1"})
     if response.status_code == 200:
         response.encoding = "utf-8"
         data = response.json()
         lyrics = data[0]["syncedLyrics"]
-        if lyrics == None:
+        if lyrics == "":
             pass
         else:
             lyrics = lyrics.split("\n")
@@ -49,14 +58,16 @@ try:
                     idx += 1
 
                     text = Align(
-                        lyrics[idx].split("]")[1][:-1],
+                        lyrics[idx].split("]")[1][1:],
                         vertical="middle",
                         align="center",
                         height=console.height
                     )
                     console.print(text)
                 else:
-                    time.sleep(min(0.2, next_time-pos))
+                    time.sleep(min(0.5, next_time-pos))
+    else:
+        print(response.status_code)
 except requests.exceptions.RequestException as errex:
     print("Exception request")
 
