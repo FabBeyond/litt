@@ -44,6 +44,9 @@ try:
     if response.status_code == 200:
         response.encoding = "utf-8"
         data = response.json()
+        if len(data) == 0:
+            print("No lyrics")
+            sys.exit(1)
         lyrics = data[0]["syncedLyrics"]
         if lyrics == "":
             pass
