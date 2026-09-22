@@ -10,15 +10,21 @@ def render_lyrics(lines, cur_idx):
         text.append(line + "\n", style=style)
     return text
 
-lines = ["hello", "how are", "you", "today my friend"]
+try:
+    response = requests.get("https://lrclib.net/api/search", params={"q": "Still Shining mayonazy"}, headers={"User-Agent": "terminal-lyrics/0.0.1"})
+    if response.status_code == 200:
+        response.encoding = "utf-8"
+        data = response.json()
+        lyrics = data[0]["syncedLyrics"]
+        if lyrics == None:
+            pass
+        else:
+            lyrics = lyrics.split("\n")
+            with Live(render_lyrics(lyrics, 0), refresh_per_second=4) as live:
+                for i in range(len(lyrics)):
+                    live.update(render_lyrics(lyrics, i))
+                    time.sleep(0.5)
 
-response = requests.get("https://lrclib.net/api/search", params={"q": "tetoris"}, headers={"User-Agent": "terminal-lyrics/0.0.1"})
-if response.status_code == 200:
-    response.encoding = "utf-8"
-    data = response.json()
-    print(data[0]["syncedLyrics"])
+except requests.exceptions.RequestException as errex:
+    print("Exception request")
 
-# with Live(render_lyrics(lines, 0), refresh_per_second=4) as live:
-#     for i in range(len(lines)):
-#         live.update(render_lyrics(lines, i))
-#         time.sleep(2)
