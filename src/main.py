@@ -1,4 +1,5 @@
 from rich.console import Console
+from rich.align import Align
 import time
 import requests
 
@@ -15,7 +16,13 @@ try:
         else:
             lyrics = lyrics.split("\n")
             for line in lyrics:
-                console.print(line, justify="center", align="center")
+                text = Align(
+                    line,
+                    vertical="middle",
+                    align="center",
+                    height=console.height
+                )
+                console.print(text)
 
 except requests.exceptions.RequestException as errex:
     print("Exception request")
