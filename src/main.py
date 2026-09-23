@@ -1,8 +1,9 @@
 from rich.console import Console
 from rich.align import Align
 from simple_term_menu import TerminalMenu
+import syncedlyrics
 import time
-import requests
+from requests.exceptions import RequestException
 from datetime import datetime
 import subprocess
 import sys
@@ -23,8 +24,11 @@ selected_player = players[selected_player]
 POLL_RATE = 0.1
 
 def parse_timestamp(stamp):
-    dt = datetime.strptime(stamp.split("]")[0][1:], "%M:%S.%f")
-    return dt.minute * 60 + dt.second + dt.microsecond / 1000000
+    try:
+        dt = datetime.strptime(stamp.split("]")[0][1:], "%M:%S.%f")
+        return dt.minute * 60 + dt.second + dt.microsecond / 1000000
+    except:
+        return None
 
 def get_position():
     result = playerctl("position")
@@ -48,24 +52,16 @@ def wait_until_next_song():
 while True:
     try:
         playing_song, artist = get_playing_song()
-        response = requests.get("https://lrclib.net/api/search", params={"q": f"{playing_song} {artist}"}, headers={"User-Agent": "terminal-lyrics/0.0.1"})
-    except requests.exceptions.RequestException as errex:
-        print(f"Exception request: {errex}")
-        sys.exit(1)
-
-    if response.status_code != 200:
-        print(response.status_code)
+        lyrics = syncedlyrics.search(f"{playing_song} {artist}")
+    except RequestException as e:
+        print(f"Network error {e}")
+        wait_until_next_song()
+        continue
+    except Exception as e:
+        print(f"An unexpected error occured {e}")
         wait_until_next_song()
         continue
 
-    response.encoding = "utf-8"
-    data = response.json()
-    if len(data) == 0:
-        print("no lyrics :(")
-        wait_until_next_song()
-        continue
-
-    lyrics = data[0]["syncedLyrics"]
     if lyrics is None:
         print("no lyrics :(")
         wait_until_next_song()
@@ -74,14 +70,23 @@ while True:
     lyrics = lyrics.split("\n")
     idx = 0
     last_song = get_playing_song()
+    global_offset = list(filter(lambda x: "offset" in x.lower(), lyrics))
+    if len(global_offset) == 0:
+        global_offset = 0
+    else:
+        global_offset = list(global_offset)[0]
+        global_offset = float(global_offset.split(":")[1].strip()[:-1])
 
     while idx < len(lyrics)-1:
-        pos = get_position()
         next_time = parse_timestamp(lyrics[idx+1])
+        if next_time is None:
+            idx += 1
+            continue
+        next_time += global_offset/1000
+        pos = get_position()
 
         new_song = get_playing_song()
         if new_song != last_song:
-            print(123)
             break
         last_song = new_song
 
