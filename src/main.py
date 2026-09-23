@@ -67,6 +67,7 @@ while True:
 
     lyrics = data[0]["syncedLyrics"]
     if lyrics is None:
+        print("no lyrics :(")
         wait_until_next_song()
         continue
 
@@ -77,6 +78,12 @@ while True:
     while idx < len(lyrics)-1:
         pos = get_position()
         next_time = parse_timestamp(lyrics[idx+1])
+
+        new_song = get_playing_song()
+        if new_song != last_song:
+            print(123)
+            break
+        last_song = new_song
 
         if pos >= next_time:
             idx += 1
