@@ -77,28 +77,35 @@ while True:
         global_offset = list(global_offset)[0]
         global_offset = float(global_offset.split(":")[1].strip()[:-1])
 
-    while idx < len(lyrics)-1:
-        next_time = parse_timestamp(lyrics[idx+1])
-        if next_time is None:
-            idx += 1
+    timed_lyrics = []
+    for lyric in lyrics:
+        timestamp = parse_timestamp(lyric)
+        if timestamp is None:
             continue
-        next_time += global_offset/1000
+        timestamp += global_offset
+
+        timed_lyrics.append((timestamp, lyric.split("]")[1].strip()))
+
+    last_song = get_playing_song()
+
+    while True:
         pos = get_position()
+        text = list(filter(lambda x: x[0] <= pos+global_offset, timed_lyrics))
+        if len(text) == 0:
+            continue
+        content = text[len(text)-1][1].strip()
 
         new_song = get_playing_song()
         if new_song != last_song:
             break
         last_song = new_song
 
-        if pos >= next_time:
-            idx += 1
+        text = Align(
+            content,
+            vertical="middle",
+            align="center",
+            height=console.height
+        )
+        console.print(text)
 
-            text = Align(
-                lyrics[idx].split("]", 1)[1].strip(),
-                vertical="middle",
-                align="center",
-                height=console.height
-            )
-            console.print(text)
-        else:
-            time.sleep(min(POLL_RATE, next_time-pos))
+        time.sleep(POLL_RATE)
