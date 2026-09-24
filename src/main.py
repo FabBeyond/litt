@@ -1,6 +1,7 @@
 from rich.console import Console
 from rich.align import Align
 from rich.text import Text
+from PIL import Image, ImageDraw, ImageFont
 from simple_term_menu import TerminalMenu
 import syncedlyrics
 import pyfiglet
@@ -51,6 +52,54 @@ def wait_until_next_song():
     while get_playing_song() == last_song:
         last_song = get_playing_song()
         time.sleep(1)
+def blockify(text, consoleWidth, font_path="/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc", size=16):
+    font = ImageFont.truetype(font_path, size)
+    wrapped = wrap_text(text, font, consoleWidth)
+
+    measure = ImageDraw.Draw(Image.new("1", (1, 1)))
+    l, t, r, b = measure.multiline_textbbox((0, 0), wrapped, font=font)
+    width = r - l
+    height = b - t
+    height += height % 2
+
+    img = Image.new("1", (width, height), 0)
+    ImageDraw.Draw(img).multiline_text((-l, -t), wrapped, align="center", font=font, fill=1)
+    px = img.load()
+
+    lines = []
+    for y in range(0, height, 2):
+        line = ""
+        for x in range(width):
+            top_filled = px[x, y] > 0
+            bottom_filled = px[x, y+1] > 0
+
+            if top_filled and bottom_filled:
+                line += "█"
+            elif top_filled:
+                line += "▀"
+            elif bottom_filled:
+                line += "▄"
+            else:
+                line += " "
+        lines.append(line)
+
+    return Text("\n".join(lines))
+
+def wrap_text(text, font, max_width):
+    words = text.split(" ")
+    lines = []
+    current = ""
+
+    for word in words:
+        candidate = f"{current} {word}".strip()
+        if font.getlength(candidate) <= max_width or not current:
+            current = candidate
+        else:
+            lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return "\n".join(lines)
 
 while True:
     console.clear()
@@ -111,7 +160,7 @@ while True:
         banner = Text(content, justify="center")
 
         text = Align(
-            banner,
+            blockify(content, console.width),
             vertical="middle",
             align="center",
             height=console.height
