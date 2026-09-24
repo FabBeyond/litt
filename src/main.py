@@ -1,7 +1,9 @@
 from rich.console import Console
 from rich.align import Align
+from rich.text import Text
 from simple_term_menu import TerminalMenu
 import syncedlyrics
+import pyfiglet
 import time
 from requests.exceptions import RequestException
 from datetime import datetime
@@ -25,7 +27,8 @@ POLL_RATE = 0.1
 
 def parse_timestamp(stamp):
     try:
-        dt = datetime.strptime(stamp.split("]")[0][1:], "%M:%S.%f")
+        stamp = stamp.split("]")[0][1:].replace(".", ":")
+        dt = datetime.strptime(stamp, "%M:%S:%f")
         return dt.minute * 60 + dt.second + dt.microsecond / 1000000
     except:
         return None
@@ -50,6 +53,7 @@ def wait_until_next_song():
         time.sleep(1)
 
 while True:
+    console.clear()
     try:
         playing_song, artist = get_playing_song()
         lyrics = syncedlyrics.search(f"{playing_song} {artist}")
@@ -63,6 +67,10 @@ while True:
         continue
 
     if lyrics is None:
+        print("no lyrics :(")
+        wait_until_next_song()
+        continue
+    if lyrics == []:
         print("no lyrics :(")
         wait_until_next_song()
         continue
@@ -100,8 +108,10 @@ while True:
             break
         last_song = new_song
 
+        banner = Text(content, justify="center")
+
         text = Align(
-            content,
+            banner,
             vertical="middle",
             align="center",
             height=console.height
