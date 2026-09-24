@@ -10,9 +10,17 @@ from requests.exceptions import RequestException
 from datetime import datetime
 import subprocess
 import sys
+import argparse
 
 if subprocess.run(["which", "playerctl"], capture_output=True, text=True).returncode != 0:
     print("Playerctl isnt installed or added to PATH")
+    sys.exit(1)
+
+parser = argparse.ArgumentParser("LITT")
+parser.add_argument("--settings", action="store_true")
+args = parser.parse_args()
+if args.settings:
+    import settings
     sys.exit(1)
 
 console = Console()

@@ -2,3 +2,4 @@ rich==15.0.0
 simple-term-menu==1.6.6
 pyfiglet==1.0.4
 syncedlyrics==1.0.1
+pillow==12.3.0
