@@ -11,6 +11,7 @@ from datetime import datetime
 import subprocess
 import sys
 import argparse
+import re
 
 if subprocess.run(["which", "playerctl"], capture_output=True, text=True).returncode != 0:
     print("Playerctl isnt installed or added to PATH")
@@ -22,6 +23,16 @@ args = parser.parse_args()
 if args.settings:
     import settings
     sys.exit(1)
+
+BRAILLE_BITS = {
+    (0, 0): 0x01, (0, 1): 0x02, (0, 2): 0x04, (0, 3): 0x40,
+    (1, 0): 0x08, (1, 1): 0x10, (1, 2): 0x20, (1, 3): 0x80,
+}
+TOKEN_RE = re.compile(
+    r'[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f\uac00-\ud7a3]'  # one CJK/Kana/Hangul char
+    r'|\s+'
+    r'|\S+'
+)
 
 console = Console()
 players = subprocess.run(["playerctl", "-l"], capture_output=True, text=True).stdout.strip()
@@ -60,51 +71,47 @@ def wait_until_next_song():
     while get_playing_song() == last_song:
         last_song = get_playing_song()
         time.sleep(1)
-def blockify(text, consoleWidth, font_path="/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc", size=16):
+def blockify(text, consoleWidth, font_path="/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc", size=25):
     font = ImageFont.truetype(font_path, size)
-    wrapped = wrap_text(text, font, consoleWidth)
+    wrapped = wrap_text(text, font, consoleWidth * 2)
 
-    measure = ImageDraw.Draw(Image.new("1", (1, 1)))
+    measure = ImageDraw.Draw(Image.new("L", (1, 1)))
     l, t, r, b = measure.multiline_textbbox((0, 0), wrapped, font=font)
     width = r - l
     height = b - t
-    height += height % 2
+    height += (4 - height % 4) % 4
 
-    img = Image.new("1", (width, height), 0)
-    ImageDraw.Draw(img).multiline_text((-l, -t), wrapped, align="center", font=font, fill=1)
+    img = Image.new("L", (width, height), 0)
+    ImageDraw.Draw(img).multiline_text((-l, -t), wrapped, align="center", font=font, fill=255)
     px = img.load()
 
     lines = []
-    for y in range(0, height, 2):
+    for y in range(0, height, 4):
         line = ""
-        for x in range(width):
-            top_filled = px[x, y] > 0
-            bottom_filled = px[x, y+1] > 0
-
-            if top_filled and bottom_filled:
-                line += "█"
-            elif top_filled:
-                line += "▀"
-            elif bottom_filled:
-                line += "▄"
-            else:
-                line += " "
+        for x in range(0, width, 2):
+            bits = 0
+            for (dx, dy), bit in BRAILLE_BITS.items():
+                px_x = x + dx
+                py_y = y + dy
+                if px_x < width and py_y < height and px[px_x, py_y] > 128:
+                    bits |= bit
+            line += chr(0x2800 + bits)
         lines.append(line)
 
     return Text("\n".join(lines))
 
 def wrap_text(text, font, max_width):
-    words = text.split(" ")
+    tokens = TOKEN_RE.findall(text)
     lines = []
     current = ""
 
-    for word in words:
-        candidate = f"{current} {word}".strip()
+    for token in tokens:
+        candidate = f"{current} {token}".strip()
         if font.getlength(candidate) <= max_width or not current:
             current = candidate
         else:
             lines.append(current)
-            current = word
+            current = token
     if current:
         lines.append(current)
     return "\n".join(lines)
