@@ -26,7 +26,6 @@ if subprocess.run(["which", "playerctl"], capture_output=True, text=True).return
     sys.exit(1)
 
 old_settings = termios.tcgetattr(sys.stdin.fileno())
-tty.setcbreak(sys.stdin.fileno())
 
 settings = {}
 config_dir = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
@@ -67,6 +66,8 @@ if selected_player is None:
 selected_player = players[selected_player]
 
 POLL_RATE = 0.1
+
+tty.setcbreak(sys.stdin.fileno())
 
 def parse_timestamp(stamp):
     try:
