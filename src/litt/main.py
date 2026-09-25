@@ -260,10 +260,10 @@ def main():
                     if key == "q":
                         sys.exit(0)
                     elif key == ",":
-                        # change font size
+                        settings["font_size"] -= 1
                         pass
                     elif key == ".":
-                        # change font size
+                        settings["font_size"] += 1
                         pass
                     elif key == "r":
                         break
@@ -280,6 +280,7 @@ def main():
                         # adjust global offset
                         pass
     finally:
+        open(config_file, "w").write(json.dumps(settings, indent=2))
         termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, old_settings)
 
 if __name__ == "__main__":
