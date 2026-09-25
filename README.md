@@ -4,6 +4,18 @@ LITT (Lyrics in the Terminal) is, as the name suggests, a way to display lyrics 
 Note that this tool currently only supports linux as it uses playerctl but it may be expanded to multiple operating systems in the future.
 
 ## Usage
+Firstly make sure playerctl is installed:
+```bash
+# Debian / Debian-based
+sudo apt install playerctl
+
+# Fedora / Fedora-based
+sudo dnf install playerctl
+
+# Arch / Arch-based
+sudo pacman -S playerctl
+```
+
 You can run LITT by typing `litt` and then choose your playerctl source.
 To access the settings run `litt --settings`.
 
