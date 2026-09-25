@@ -35,10 +35,6 @@ if args.settings:
     import settings
     sys.exit(1)
 
-BRAILLE_BITS = {
-    (0, 0): 0x01, (0, 1): 0x02, (0, 2): 0x04, (0, 3): 0x40,
-    (1, 0): 0x08, (1, 1): 0x10, (1, 2): 0x20, (1, 3): 0x80,
-}
 TOKEN_RE = re.compile(
     r'[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f\uac00-\ud7a3]'
     r'|\s+'
@@ -82,13 +78,61 @@ def wait_until_next_song():
     while get_playing_song() == last_song:
         last_song = get_playing_song()
         time.sleep(1)
-def blockify(text, consoleWidth, font_path="/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc", size=25):
+def blockify(text, consoleWidth, font_path="", size=25):
+    if settings["font"] == "base":
+        font_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "NotoSansCJK-Regular.ttc")
+    else:
+        font_path = settings["font"]
+
     font = ImageFont.truetype(font_path, size)
-    wrapped = wrap_text(text, font, consoleWidth * 2)
+    wrapped = wrap_text(text, font, consoleWidth * (1 if settings["font_style"] == "blocky" else 2))
 
     measure = ImageDraw.Draw(Image.new("L", (1, 1)))
     l, t, r, b = measure.multiline_textbbox((0, 0), wrapped, font=font)
+
+    lines = []
+    if settings["font_style"] == "blocky":
+        lines = blocky_lyrics(l, t, r, b, wrapped, font)
+    elif settings["font_style"] == "braille":
+        lines = braille_lyrics(l, t, r, b, wrapped, font)
+
+    return Text("\n".join(lines))
+
+def blocky_lyrics(l, t, r, b, wrapped, font):
     width = r - l
+    height = b - t
+    height += height % 2
+
+    img = Image.new("L", (width, height), 0)
+    ImageDraw.Draw(img).multiline_text((-l, -t), wrapped, align="center", font=font, fill=255)
+    px = img.load()
+
+    lines = []
+    for y in range(0, height, 2):
+        line = ""
+        for x in range(width):
+            top_filled = px[x, y] > 0
+            bottom_filled = px[x, y+1] > 0
+
+            if top_filled and bottom_filled:
+                line += "█"
+            elif top_filled:
+                line += "▀"
+            elif bottom_filled:
+                line += "▄"
+            else:
+                line += " "
+        lines.append(line)
+
+    return lines
+
+def braille_lyrics(l, t, r, b, wrapped, font):
+    BRAILLE_BITS = {
+        (0, 0): 0x01, (0, 1): 0x02, (0, 2): 0x04, (0, 3): 0x40,
+        (1, 0): 0x08, (1, 1): 0x10, (1, 2): 0x20, (1, 3): 0x80,
+    }
+    width = r - l
+    width += width % 2
     height = b - t
     height += (4 - height % 4) % 4
 
@@ -96,11 +140,6 @@ def blockify(text, consoleWidth, font_path="/usr/share/fonts/noto-cjk/NotoSansCJ
     ImageDraw.Draw(img).multiline_text((-l, -t), wrapped, align="center", font=font, fill=255)
     px = img.load()
 
-    lines = braille_lyrics(height, width, px)
-
-    return Text("\n".join(lines))
-
-def braille_lyrics(height, width, px):
     lines = []
     for y in range(0, height, 4):
         line = ""
