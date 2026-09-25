@@ -15,18 +15,27 @@ import re
 import os
 import json
 
+def cmd(command):
+    return subprocess.run(command, capture_output=True, text=True)
+
 if subprocess.run(["which", "playerctl"], capture_output=True, text=True).returncode != 0:
     print("Playerctl isnt installed or added to PATH")
     sys.exit(1)
+if cmd(["playerctl", "-l"]).stdout.strip() == "":
+    print("No playerctl source")
+    sys.exit(1)
 
+settings = {}
 config_dir = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
 config_path = os.path.join(config_dir, "litt")
 config_file = os.path.join(config_path, "config.json")
+DEFAULTS = {"font": "base", "font_style": "blocky"}
+os.makedirs(config_path, exist_ok=True)
 if not os.path.isfile(config_file):
-    os.mkdir(config_path)
-    open(config_file, "w").close()
-
-settings = json.loads(open(config_file, "r").read())
+    with open(config_file, "w") as f:
+        json.dump(DEFAULTS, f, indent=2)
+with open(config_file) as f:
+    settings = {**DEFAULTS, **json.load(f)}
 
 parser = argparse.ArgumentParser("LITT")
 parser.add_argument("--settings", action="store_true")
@@ -64,8 +73,6 @@ def get_position():
     result = playerctl("position")
     return float(result.stdout.strip())
 
-def cmd(command):
-    return subprocess.run(command, capture_output=True, text=True)
 
 def playerctl(*args):
     return cmd(["playerctl", "-p", selected_player, *args])
