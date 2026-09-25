@@ -14,6 +14,9 @@ import argparse
 import re
 import os
 import json
+import termios
+import tty
+import select
 
 def cmd(command):
     return subprocess.run(command, capture_output=True, text=True)
@@ -59,6 +62,8 @@ selected_player = player_menu.show()
 if selected_player is None:
     sys.exit(0)
 selected_player = players[selected_player]
+old_settings = termios.tcgetattr(sys.stdin.fileno())
+tty.setcbreak(sys.stdin.fileno())
 
 POLL_RATE = 0.1
 
@@ -246,7 +251,31 @@ def main():
             )
             console.print(text)
 
-            time.sleep(POLL_RATE)
+            ready, _, _ = select.select([sys.stdin], [], [], POLL_RATE)
+            if ready:
+                key = sys.stdin.read(1)
+                if key == "q":
+                    sys.exit(0)
+                elif key == ",":
+                    # change font size
+                    pass
+                elif key == ".":
+                    # change font size
+                    pass
+                elif key == "r":
+                    break
+                elif key == "j":
+                    # adjust song offset
+                    pass
+                elif key == "k":
+                    # adjust song offset
+                    pass
+                elif key == "J":
+                    # adjust global offset
+                    pass
+                elif key == "K":
+                    # adjust global offset
+                    pass
 
 if __name__ == "__main__":
     main()
