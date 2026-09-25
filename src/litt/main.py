@@ -21,9 +21,6 @@ def cmd(command):
 if subprocess.run(["which", "playerctl"], capture_output=True, text=True).returncode != 0:
     print("Playerctl isnt installed or added to PATH")
     sys.exit(1)
-if cmd(["playerctl", "-l"]).stdout.strip() == "":
-    print("No playerctl source")
-    sys.exit(1)
 
 settings = {}
 config_dir = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
@@ -49,6 +46,10 @@ TOKEN_RE = re.compile(
     r'|\s+'
     r'|\S+'
 )
+
+if cmd(["playerctl", "-l"]).stdout.strip() == "":
+    print("No playerctl source")
+    sys.exit(1)
 
 console = Console()
 players = subprocess.run(["playerctl", "-l"], capture_output=True, text=True).stdout.strip()
