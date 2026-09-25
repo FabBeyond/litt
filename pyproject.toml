@@ -17,4 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
-litt = "main:main"
+litt = "litt.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/litt"]

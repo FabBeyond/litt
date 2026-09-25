@@ -41,7 +41,7 @@ parser = argparse.ArgumentParser("LITT")
 parser.add_argument("--settings", action="store_true")
 args = parser.parse_args()
 if args.settings:
-    import settings
+    from litt import settings
     sys.exit(1)
 
 TOKEN_RE = re.compile(
