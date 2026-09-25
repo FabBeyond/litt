@@ -261,10 +261,8 @@ def main():
                         sys.exit(0)
                     elif key == ",":
                         settings["font_size"] -= 1
-                        pass
                     elif key == ".":
                         settings["font_size"] += 1
-                        pass
                     elif key == "r":
                         break
                     elif key == "j":
