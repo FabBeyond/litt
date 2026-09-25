@@ -12,10 +12,21 @@ import subprocess
 import sys
 import argparse
 import re
+import os
+import json
 
 if subprocess.run(["which", "playerctl"], capture_output=True, text=True).returncode != 0:
     print("Playerctl isnt installed or added to PATH")
     sys.exit(1)
+
+config_dir = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
+config_path = os.path.join(config_dir, "litt")
+config_file = os.path.join(config_path, "config.json")
+if not os.path.isfile(config_file):
+    os.mkdir(config_path)
+    open(config_file, "w").close()
+
+settings = json.loads(open(config_file, "r").read())
 
 parser = argparse.ArgumentParser("LITT")
 parser.add_argument("--settings", action="store_true")
@@ -29,7 +40,7 @@ BRAILLE_BITS = {
     (1, 0): 0x08, (1, 1): 0x10, (1, 2): 0x20, (1, 3): 0x80,
 }
 TOKEN_RE = re.compile(
-    r'[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f\uac00-\ud7a3]'  # one CJK/Kana/Hangul char
+    r'[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f\uac00-\ud7a3]'
     r'|\s+'
     r'|\S+'
 )
@@ -85,6 +96,11 @@ def blockify(text, consoleWidth, font_path="/usr/share/fonts/noto-cjk/NotoSansCJ
     ImageDraw.Draw(img).multiline_text((-l, -t), wrapped, align="center", font=font, fill=255)
     px = img.load()
 
+    lines = braille_lyrics(height, width, px)
+
+    return Text("\n".join(lines))
+
+def braille_lyrics(height, width, px):
     lines = []
     for y in range(0, height, 4):
         line = ""
@@ -98,7 +114,7 @@ def blockify(text, consoleWidth, font_path="/usr/share/fonts/noto-cjk/NotoSansCJ
             line += chr(0x2800 + bits)
         lines.append(line)
 
-    return Text("\n".join(lines))
+    return lines
 
 def wrap_text(text, font, max_width):
     tokens = TOKEN_RE.findall(text)
