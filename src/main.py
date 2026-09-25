@@ -178,70 +178,74 @@ def wrap_text(text, font, max_width):
         lines.append(current)
     return "\n".join(lines)
 
-while True:
-    console.clear()
-    try:
-        playing_song, artist = get_playing_song()
-        lyrics = syncedlyrics.search(f"{playing_song} {artist}")
-    except RequestException as e:
-        print(f"Network error {e}")
-        wait_until_next_song()
-        continue
-    except Exception as e:
-        print(f"An unexpected error occured {e}")
-        wait_until_next_song()
-        continue
-
-    if lyrics is None:
-        print("no lyrics :(")
-        wait_until_next_song()
-        continue
-    if lyrics == []:
-        print("no lyrics :(")
-        wait_until_next_song()
-        continue
-
-    lyrics = lyrics.split("\n")
-    idx = 0
-    last_song = get_playing_song()
-    global_offset = list(filter(lambda x: "offset" in x.lower(), lyrics))
-    if len(global_offset) == 0:
-        global_offset = 0
-    else:
-        global_offset = list(global_offset)[0]
-        global_offset = float(global_offset.split(":")[1].strip()[:-1])
-
-    timed_lyrics = []
-    for lyric in lyrics:
-        timestamp = parse_timestamp(lyric)
-        if timestamp is None:
-            continue
-        timestamp += global_offset
-
-        timed_lyrics.append((timestamp, lyric.split("]")[1].strip()))
-
-    last_song = get_playing_song()
-
+def main():
     while True:
-        pos = get_position()
-        text = list(filter(lambda x: x[0] <= pos+global_offset, timed_lyrics))
-        if len(text) == 0:
+        console.clear()
+        try:
+            playing_song, artist = get_playing_song()
+            lyrics = syncedlyrics.search(f"{playing_song} {artist}")
+        except RequestException as e:
+            print(f"Network error {e}")
+            wait_until_next_song()
             continue
-        content = text[len(text)-1][1].strip()
+        except Exception as e:
+            print(f"An unexpected error occured {e}")
+            wait_until_next_song()
+            continue
 
-        new_song = get_playing_song()
-        if new_song != last_song:
-            break
-        last_song = new_song
+        if lyrics is None:
+            print("no lyrics :(")
+            wait_until_next_song()
+            continue
+        if lyrics == []:
+            print("no lyrics :(")
+            wait_until_next_song()
+            continue
 
-        banner = Text(content, justify="center")
+        lyrics = lyrics.split("\n")
+        idx = 0
+        last_song = get_playing_song()
+        global_offset = list(filter(lambda x: "offset" in x.lower(), lyrics))
+        if len(global_offset) == 0:
+            global_offset = 0
+        else:
+            global_offset = list(global_offset)[0]
+            global_offset = float(global_offset.split(":")[1].strip()[:-1])
 
-        text = Align(
-            blockify(content, console.width),
-            vertical="middle",
-            align="center",
-            height=console.height
-        )
-        console.print(text)
+        timed_lyrics = []
+        for lyric in lyrics:
+            timestamp = parse_timestamp(lyric)
+            if timestamp is None:
+                continue
+            timestamp += global_offset
 
-        time.sleep(POLL_RATE)
+            timed_lyrics.append((timestamp, lyric.split("]")[1].strip()))
+
+        last_song = get_playing_song()
+
+        while True:
+            pos = get_position()
+            text = list(filter(lambda x: x[0] <= pos+global_offset, timed_lyrics))
+            if len(text) == 0:
+                continue
+            content = text[len(text)-1][1].strip()
+
+            new_song = get_playing_song()
+            if new_song != last_song:
+                break
+            last_song = new_song
+
+            banner = Text(content, justify="center")
+
+            text = Align(
+                blockify(content, console.width),
+                vertical="middle",
+                align="center",
+                height=console.height
+            )
+            console.print(text)
+
+            time.sleep(POLL_RATE)
+
+if __name__ == "__main__":
+    main()
