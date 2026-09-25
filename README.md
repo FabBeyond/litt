@@ -21,7 +21,11 @@ To access the settings run `litt --settings`.
 
 ## Installation
 
-This tool is currently in development and has no official release but you can try out the bleeding edge version by building it yourself with the steps below.
+The following commands will automatically install uv and LITT
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv tool install litt
+```
 
 ## Building
 
