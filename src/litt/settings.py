@@ -1,10 +1,7 @@
 from simple_term_menu import TerminalMenu
-import os
-import json
+from litt.utils import initialize_config, get_config_value, set_config_value, save_config
 
-config_dir = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
-config_file = os.path.join(config_dir, "litt", "config.json")
-settings = json.loads(open(config_file, "r").read())
+initialize_config()
 
 font_options = ["Style", "Font", "Font Size"]
 font_menu = TerminalMenu(font_options, title="Settings")
@@ -16,9 +13,9 @@ if answer == 0:
     answer = style_menu.show()
 
     if answer == 0:
-        settings["font_style"] = "blocky"
+        set_config_value("font_style", "blocky")
     elif answer == 1:
-        settings["font_style"] = "braille"
+        set_config_value("font_style", "braille")
 
 elif answer == 1:
     fontfont_options = ["Base", "Custom"]
@@ -26,11 +23,11 @@ elif answer == 1:
     answer = fontfont_menu.show()
 
     if answer == 0:
-        settings["font"] = "base"
+        set_config_value("font", "base")
     elif answer == 1:
-        settings["font"] = input("Custom Font Path: ")
+        set_config_value("font", input("Custom Font Path: "))
 
 elif answer == 2:
-    settings["font_size"] = float(input(f"Set custom font size (cur: {settings['font_size']}): "))
+    set_config_value("font_size", float(input(f"Set custom font size (cur: {get_config_value('font_size')}): ")))
 
-open(config_file, "w").write(json.dumps(settings, indent=2))
+save_config()
