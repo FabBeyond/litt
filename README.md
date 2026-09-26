@@ -3,8 +3,11 @@
 LITT (Lyrics in the Terminal) is, as the name suggests, a way to display lyrics of the currently playing song in the terminal.
 Note that this tool currently only supports linux as it uses playerctl but it may be expanded to multiple operating systems in the future.
 
-## Usage
-Firstly make sure playerctl is installed:
+## Requirements
+- Linux
+- playerctl
+
+Install playerctl with our distros package manager:
 ```bash
 # Debian / Debian-based
 sudo apt install playerctl
@@ -16,9 +19,6 @@ sudo dnf install playerctl
 sudo pacman -S playerctl
 ```
 
-You can run LITT by typing `litt` and then choose your playerctl source.
-To access the settings run `litt --settings`.
-
 ## Installation
 
 The following commands will automatically install uv and LITT
@@ -27,7 +27,22 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv tool install litt
 ```
 
-## Building
+## Usage
+To use LITT start any song (Spotify/YouTube) and run `litt`
+LITT will then list currently playing sources and you can choose one.
+
+To access the settings run `litt --settings`
+
+### Keybinds
+The following keybinds can be used:
+```txt
+, - Decrease Lyrics Size
+. - Increase Lyrics Size
+r - Re-fetch Lyrics
+q - Quit
+```
+
+## Building from source
 
 Prerequisites
 - python (with pip)
@@ -48,5 +63,5 @@ pip install -r requirements.txt
 
 3. Run the program
 ```bash
-python3 src/main.py
+python3 src/litt/main.py
 ```
