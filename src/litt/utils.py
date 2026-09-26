@@ -6,6 +6,10 @@ config_dir = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
 config_path = os.path.join(config_dir, "litt")
 config_file = os.path.join(config_path, "config.json")
 
+cache_dir = os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
+cache_path = os.path.join(cache_dir, "litt")
+os.makedirs(cache_path, exist_ok=True)
+
 DEFAULTS = {"font": "base", "font_style": "blocky", "font_size": 25}
 config = {}
 
@@ -33,3 +37,12 @@ def set_config_value(key, val):
 def save_config():
     with open(config_file, "w") as f:
         f.write(json.dumps(config, indent=2))
+
+def is_cached(name):
+    return os.path.isfile(os.path.join(cache_path, name))
+def add_cache(name, lyrics):
+    with open(os.path.join(cache_path, name), "w") as f:
+        f.write(lyrics)
+def get_cached(name):
+    with open(os.path.join(cache_path, name), "r") as f:
+        return f.read()

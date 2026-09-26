@@ -18,7 +18,7 @@ import termios
 import tty
 import select
 
-from litt.utils import initialize_config, get_config_value, set_config_value, save_config
+from litt.utils import initialize_config, get_config_value, set_config_value, save_config, is_cached, get_cached, add_cache
 
 def cmd(command):
     return subprocess.run(command, capture_output=True, text=True)
@@ -179,50 +179,64 @@ POLL_RATE = 0.1
 
 tty.setcbreak(sys.stdin.fileno())
 
+def get_lyrics():
+    playing_song, artist = get_playing_song()
+    search_term = f"{playing_song} {artist}"
+
+    lyrics = ""
+    if is_cached(search_term):
+        lyrics = get_cached(search_term)
+    else:
+        lyrics = fetch_lyrics(search_term)
+        add_cache(search_term, lyrics)
+
+    if lyrics == False or lyrics is None or lyrics == []:
+        print("no lyrics :(")
+        return False
+
+    lyrics = lyrics.split("\n")
+
+    global_offset = get_global_offset(search_term)
+    timed_lyrics = []
+    for lyric in lyrics:
+        timestamp = parse_timestamp(lyric)
+        if timestamp is None:
+            continue
+        timestamp += global_offset
+
+        timed_lyrics.append((timestamp, lyric.split("]")[1].strip()))
+
+
+
+    return timed_lyrics, global_offset
+def fetch_lyrics(search_term):
+    try:
+        lyrics = syncedlyrics.search(search_term)
+        return lyrics
+    except RequestException as e:
+        print(f"Network error {e}")
+        return False
+    except Exception as e:
+        print(f"An unexpected error occured {e}")
+        return False
+def get_global_offset(lyrics):
+    global_offset = list(filter(lambda x: "offset" in x.lower(), lyrics))
+    if len(global_offset) == 0:
+        global_offset = 0
+    else:
+        global_offset = list(global_offset)[0]
+        global_offset = float(global_offset.split(":")[1].strip()[:-1])
+
+    return global_offset
 
 def main():
     try:
         while True:
             console.clear()
-            try:
-                playing_song, artist = get_playing_song()
-                lyrics = syncedlyrics.search(f"{playing_song} {artist}")
-            except RequestException as e:
-                print(f"Network error {e}")
+            timed_lyrics, global_offset = get_lyrics()
+            if timed_lyrics == False:
                 wait_until_next_song()
                 continue
-            except Exception as e:
-                print(f"An unexpected error occured {e}")
-                wait_until_next_song()
-                continue
-
-            if lyrics is None:
-                print("no lyrics :(")
-                wait_until_next_song()
-                continue
-            if lyrics == []:
-                print("no lyrics :(")
-                wait_until_next_song()
-                continue
-
-            lyrics = lyrics.split("\n")
-            idx = 0
-            last_song = get_playing_song()
-            global_offset = list(filter(lambda x: "offset" in x.lower(), lyrics))
-            if len(global_offset) == 0:
-                global_offset = 0
-            else:
-                global_offset = list(global_offset)[0]
-                global_offset = float(global_offset.split(":")[1].strip()[:-1])
-
-            timed_lyrics = []
-            for lyric in lyrics:
-                timestamp = parse_timestamp(lyric)
-                if timestamp is None:
-                    continue
-                timestamp += global_offset
-
-                timed_lyrics.append((timestamp, lyric.split("]")[1].strip()))
 
             last_song = get_playing_song()
 
