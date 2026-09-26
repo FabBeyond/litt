@@ -32,6 +32,10 @@ To use LITT start any song (Spotify/YouTube) and run `litt`
 LITT will then list currently playing sources and you can choose one.
 
 To access the settings run `litt --settings`
+The setings include:
+- Font Size
+- Custom Font
+- Text Style
 
 ### Keybinds
 The following keybinds can be used:
@@ -65,3 +69,7 @@ pip install -r requirements.txt
 ```bash
 python3 src/litt/main.py
 ```
+
+## Credits
+- [syncedlyrics](https://pypi.org/project/syncedlyrics/)
+- [Noto-CJK](https://github.com/notofonts/noto-cjk/)
