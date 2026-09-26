@@ -5,6 +5,7 @@ from PIL import Image, ImageDraw, ImageFont
 from simple_term_menu import TerminalMenu
 import syncedlyrics
 import pyfiglet
+
 import time
 from requests.exceptions import RequestException
 from datetime import datetime
@@ -13,61 +14,14 @@ import sys
 import argparse
 import re
 import os
-import json
 import termios
 import tty
 import select
 
+from litt.utils import initialize_config, get_config_value, set_config_value, save_config
+
 def cmd(command):
     return subprocess.run(command, capture_output=True, text=True)
-
-if subprocess.run(["which", "playerctl"], capture_output=True, text=True).returncode != 0:
-    print("Playerctl isnt installed or added to PATH")
-    sys.exit(1)
-
-old_settings = termios.tcgetattr(sys.stdin.fileno())
-
-settings = {}
-config_dir = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
-config_path = os.path.join(config_dir, "litt")
-config_file = os.path.join(config_path, "config.json")
-DEFAULTS = {"font": "base", "font_style": "blocky", "font_size": 25}
-os.makedirs(config_path, exist_ok=True)
-if not os.path.isfile(config_file):
-    with open(config_file, "w") as f:
-        json.dump(DEFAULTS, f, indent=2)
-with open(config_file) as f:
-    settings = {**DEFAULTS, **json.load(f)}
-
-parser = argparse.ArgumentParser("LITT")
-parser.add_argument("--settings", action="store_true")
-args = parser.parse_args()
-if args.settings:
-    from litt import settings
-    sys.exit(1)
-
-TOKEN_RE = re.compile(
-    r'[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f\uac00-\ud7a3]'
-    r'|\s+'
-    r'|\S+'
-)
-
-if cmd(["playerctl", "-l"]).stdout.strip() == "":
-    print("No playerctl source")
-    sys.exit(1)
-
-console = Console()
-players = subprocess.run(["playerctl", "-l"], capture_output=True, text=True).stdout.strip()
-players = players.split("\n")
-player_menu = TerminalMenu(players, title="Choose your playerctl source:")
-selected_player = player_menu.show()
-if selected_player is None:
-    sys.exit(0)
-selected_player = players[selected_player]
-
-POLL_RATE = 0.1
-
-tty.setcbreak(sys.stdin.fileno())
 
 def parse_timestamp(stamp):
     try:
@@ -94,22 +48,22 @@ def wait_until_next_song():
         last_song = get_playing_song()
         time.sleep(1)
 def blockify(text, consoleWidth, font_path=""):
-    size = settings["font_size"]
-    if settings["font"] == "base":
+    size = get_config_value("font_size")
+    if get_config_value("font") == "base":
         font_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "NotoSansCJK-Regular.ttc")
     else:
-        font_path = settings["font"]
+        font_path = get_config_value("font")
 
     font = ImageFont.truetype(font_path, size)
-    wrapped = wrap_text(text, font, consoleWidth * (1 if settings["font_style"] == "blocky" else 2))
+    wrapped = wrap_text(text, font, consoleWidth * (1 if get_config_value("font_style") == "blocky" else 2))
 
     measure = ImageDraw.Draw(Image.new("L", (1, 1)))
     l, t, r, b = measure.multiline_textbbox((0, 0), wrapped, font=font)
 
     lines = []
-    if settings["font_style"] == "blocky":
+    if get_config_value("font_style") == "blocky":
         lines = blocky_lyrics(l, t, r, b, wrapped, font)
-    elif settings["font_style"] == "braille":
+    elif get_config_value("font_style") == "braille":
         lines = braille_lyrics(l, t, r, b, wrapped, font)
 
     return Text("\n".join(lines))
@@ -187,6 +141,45 @@ def wrap_text(text, font, max_width):
         lines.append(current)
     return "\n".join(lines)
 
+
+old_settings = termios.tcgetattr(sys.stdin.fileno())
+
+initialize_config()
+
+parser = argparse.ArgumentParser("LITT")
+parser.add_argument("--settings", action="store_true")
+args = parser.parse_args()
+if args.settings:
+    from litt import settings
+    sys.exit(1)
+
+
+if cmd(["which", "playerctl"]).returncode != 0:
+    print("Playerctl isnt installed or added to PATH")
+    sys.exit(1)
+if cmd(["playerctl", "-l"]).stdout.strip() == "":
+    print("No playerctl source")
+    sys.exit(1)
+
+console = Console()
+players = subprocess.run(["playerctl", "-l"], capture_output=True, text=True).stdout.strip()
+players = players.split("\n")
+player_menu = TerminalMenu(players, title="Choose your playerctl source:")
+selected_player = player_menu.show()
+if selected_player is None:
+    sys.exit(0)
+selected_player = players[selected_player]
+
+TOKEN_RE = re.compile(
+    r'[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f\uac00-\ud7a3]'
+    r'|\s+'
+    r'|\S+'
+)
+POLL_RATE = 0.1
+
+tty.setcbreak(sys.stdin.fileno())
+
+
 def main():
     try:
         while True:
@@ -261,9 +254,9 @@ def main():
                     if key == "q":
                         sys.exit(0)
                     elif key == ",":
-                        settings["font_size"] -= 1
+                        set_config_value("font_size", get_config_value("font_size") - 1)
                     elif key == ".":
-                        settings["font_size"] += 1
+                        set_config_value("font_size", get_config_value("font_size") + 1)
                     elif key == "r":
                         break
                     elif key == "j":
@@ -279,7 +272,7 @@ def main():
                         # adjust global offset
                         pass
     finally:
-        open(config_file, "w").write(json.dumps(settings, indent=2))
+        save_config()
         termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, old_settings)
 
 if __name__ == "__main__":
