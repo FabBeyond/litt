@@ -179,20 +179,23 @@ POLL_RATE = 0.1
 
 tty.setcbreak(sys.stdin.fileno())
 
-def get_lyrics():
+def get_lyrics(force_fetch=False):
     playing_song, artist = get_playing_song()
     search_term = f"{playing_song} {artist}"
 
     lyrics = ""
-    if is_cached(search_term):
+    if is_cached(search_term) and not force_fetch:
         lyrics = get_cached(search_term)
     else:
         lyrics = fetch_lyrics(search_term)
+        if lyrics == False:
+            print("no lyrics :(")
+            return False, 0
         add_cache(search_term, lyrics)
 
-    if lyrics == False or lyrics is None or lyrics == []:
+    if lyrics == False:
         print("no lyrics :(")
-        return False
+        return False, 0
 
     lyrics = lyrics.split("\n")
 
@@ -212,6 +215,9 @@ def get_lyrics():
 def fetch_lyrics(search_term):
     try:
         lyrics = syncedlyrics.search(search_term)
+        if lyrics is None or lyrics == "":
+            return False
+
         return lyrics
     except RequestException as e:
         print(f"Network error {e}")
@@ -231,9 +237,11 @@ def get_global_offset(lyrics):
 
 def main():
     try:
+        force_fetch = False
         while True:
             console.clear()
-            timed_lyrics, global_offset = get_lyrics()
+            timed_lyrics, global_offset = get_lyrics(force_fetch=force_fetch)
+            force_fetch = False
             if timed_lyrics == False:
                 wait_until_next_song()
                 continue
@@ -272,6 +280,9 @@ def main():
                     elif key == ".":
                         set_config_value("font_size", get_config_value("font_size") + 1)
                     elif key == "r":
+                        break
+                    elif key == "R":
+                        force_fetch = True
                         break
                     elif key == "j":
                         # adjust song offset

@@ -42,7 +42,8 @@ The following keybinds can be used:
 ```txt
 , - Decrease Lyrics Size
 . - Increase Lyrics Size
-r - Re-fetch Lyrics
+r - Re-Display Lyrics
+R - Re-Fetch Lyrics
 q - Quit
 ```
 
