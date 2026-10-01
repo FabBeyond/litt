@@ -6,7 +6,8 @@ Note that this tool currently only supports linux as it uses playerctl but it ma
 ## Requirements
 - Linux
 - playerctl
-- [MPRIS Integration Extension](https://addons.mozilla.org/en-US/firefox/addon/mpris-integration/) (Only needed if you use Firefox)
+- A non Firefox source
+  - Firefox does not work correctly at the moment. May be fixed in the future
 
 Install playerctl with our distros package manager:
 ```bash
